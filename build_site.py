@@ -22,7 +22,7 @@ import shutil
 import sys
 import time
 
-from inspector import inspect, features
+from inspector import inspect, features, parse_setup
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RECIPES = os.path.join(ROOT, "recipes")
@@ -86,8 +86,10 @@ def load_recipes(categories):
         found.append({
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
-            "setup": {k: v for k, v in (("gnome", meta.get("gnome", "")), ("kernel", meta.get("kernel", "")),
-                                        ("or_later", meta.get("or_later", ""))) if v},
+            # from the header the intake wrote; for one added by hand, from its own "Made on" row
+            "setup": {k: v for k, v in (("gnome", meta.get("gnome") or parse_setup(body).get("gnome", "")),
+                                        ("kernel", meta.get("kernel") or parse_setup(body).get("kernel", "")),
+                                        ("or_later", meta.get("or_later") or ("yes" if parse_setup(body).get("or_later") else ""))) if v},
             "sha256": hashlib.sha256(raw).hexdigest(), "body": body, "raw": raw,
             "report": report, "counts": counts,
         })
