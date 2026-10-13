@@ -178,16 +178,17 @@ SIDE = {"mains": [], "children": {}}  # filled by build_pages: the main categori
 
 
 def sidebar(depth, current):
-    """The left panel: the main categories. Their sub-categories are on the category's own page."""
+    """The left panel: the library, the main categories and under each its sub-categories, with counts."""
     up = "../" * depth
-    mine = None
-    for c, _total, subs in SIDE["mains"]:
-        if current == c["id"] or any(sc["id"] == current for sc, _k in subs):
-            mine = c["id"]
-    out = ['<div class="label">Browse</div>', f'<a class="side-all" href="{up}recipes/index.html">All recipes</a>']
-    for c, total, _subs in SIDE["mains"]:
-        here = ' aria-current="page"' if c["id"] == mine else ""
-        out.append(f'<a{here} href="{up}c/{c["id"]}/index.html">{esc(c["name"])} <span>{total}</span></a>')
+    total = sum(t for _c, t, _subs in SIDE["mains"])
+    out = [f'<div class="lib"><span>Recipe library</span><b>{total} .md</b></div>',
+           f'<a class="side-all" href="{up}recipes/index.html"><i class="ico">\u25a4</i> All recipes <span>{total}</span></a>']
+    for c, count_, subs in SIDE["mains"]:
+        here = ' aria-current="page"' if c["id"] == current else ""
+        out.append(f'<a class="main"{here} href="{up}c/{c["id"]}/index.html">{esc(c["name"])} <span>{count_}</span></a>')
+        for sc, k in subs:
+            there = ' aria-current="page"' if sc["id"] == current else ""
+            out.append(f'<a class="subl"{there} href="{up}c/{sc["id"]}/index.html"><i>\u21b3</i> {esc(sc["name"])} <span>{k}</span></a>')
     return "".join(out)
 
 
@@ -236,13 +237,41 @@ def votes(r):
 
 
 def recipe_card(r, categories, up):
+    """One recipe in a list: its category, what Mentors said, the title, one line, and what to do with it."""
     cat = categories[r["category"]]
     example = '<span class="badge example">example</span>' if r["status"] == "example" else ""
     more = f'<span class="badge">{len(r["versions"]) + 1} versions</span>' if r.get("versions") else ""
     if r["setup"].get("gnome"):
         more += f' <span class="badge">GNOME {esc(r["setup"]["gnome"])}{"+" if r["setup"].get("or_later") else ""}</span>'
-    return (f'<a class="card" href="{up}r/{r["id"]}/index.html"><strong>{esc(r["title"])}</strong>'
-            f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {more} {votes(r)} {badge(r["counts"])}</span></a>')
+    rated = (f'<span class="vote"><b class="yes">\U0001F44D {r["up"]}</b><i></i><b class="no">\U0001F44E {r["down"]}</b></span>'
+             if (r.get("up") or r.get("down")) else '<span class="vote none">not rated yet</span>')
+    text = esc((r["title"] + " " + r["summary"] + " " + cat["name"]).lower())
+    link = f'{up}r/{r["id"]}/index.html'
+    return (f'<article class="card" data-title="{esc(r["title"].lower())}" data-score="{r.get("up", 0) - r.get("down", 0)}" '
+            f'data-time="{esc(r["submitted"])}" data-text="{text}">'
+            f'<div class="top"><span class="chip">{esc(cat["name"])}</span>{rated}</div>'
+            f'<a class="t" href="{link}">{esc(r["title"])}</a><p>{esc(r["summary"])}</p>'
+            f'<div class="meta">{example} {more} {badge(r["counts"])}</div>'
+            f'<div class="actions"><a class="btn ghost" href="{up}raw/{r["id"]}.md" download>Download .md</a>'
+            f'<a class="btn" href="{link}">View</a></div></article>')
+
+
+def stats(recipes):
+    heads = [r for r in recipes if not r["head"]]
+    liked = sum(1 for r in heads if r.get("up", 0) > r.get("down", 0))
+    clean = sum(1 for r in heads if not r["counts"]["high"])
+    voted = sum(r.get("up", 0) + r.get("down", 0) for r in heads)
+    cells = (("Recipes", len(heads), "published"), ("Liked", liked, "more up than down"),
+             ("Checked", clean, "nothing serious found"), ("Votes", voted, "from Mentor users"))
+    return '<div class="stats">' + "".join(
+        f'<div><span>{esc(k)}</span><b>{v}</b><i>{esc(sub)}</i></div>' for k, v, sub in cells) + "</div>"
+
+
+TOOLBAR = ('<div class="toolbar" id="toolbar" hidden><input type="search" id="filter" placeholder="Filter these recipes" '
+           'aria-label="Filter these recipes" autocomplete="off" spellcheck="false">'
+           '<label>Sort <select id="sort" aria-label="Sort"><option value="score">Highest rated</option>'
+           '<option value="time">Newest</option><option value="title">A to Z</option></select></label>'
+           '<span id="shown"></span></div>')
 
 
 def parent_link(cat, categories):
@@ -311,9 +340,9 @@ def build_pages(recipes, categories):
 <p class="intro"><strong>Recipes for Mentor.</strong> What people built with it, written down so that your Mentor can build the
 same thing. Your Mentor reads each one with you first and tells you everything it would do.
 <a href="{RELEASES}">Get Mentor</a> (Windows 11).</p>
-<h2>Latest</h2>
+{stats(recipes)}
+{TOOLBAR}
 <div class="grid">{listing or '<p>No recipes yet.</p>'}</div>
-{browse}
 <details class="safe"><summary>Is it safe to follow a recipe from a stranger?</summary>
 <p>Not by default, and Mentor does not assume it is. Before anything is changed, Mentor checks the recipe with fixed rules
 (a program run unseen, a change to the safety rules, private keys read, files sent away, hidden text, text aimed at the assistant),
@@ -343,7 +372,7 @@ Recipes are published here automatically after that check and are not read by a 
             f'<a class="sub" href="../{sc["id"]}/index.html"><strong>{esc(sc["name"])}</strong><span>{esc(sc["description"])}</span>'
             f'<em>{len(used[sc["id"]])} recipe(s)</em></a>' for sc in children.get(c["id"], []) if used.get(sc["id"]))
         body = (f'{crumbs}<h1>{esc(c["name"])}</h1><p class="lead">{esc(c["description"])}</p>' +
-                (f'<div class="subs">{subcards}</div>' if subcards else "") +
+                TOOLBAR + (f'<div class="subs">{subcards}</div>' if subcards else "") +
                 (f'<h2>Recipes</h2><div class="grid">{cards(own, "../../")}</div>' if own else "") + sections)
         write(f"c/{c['id']}/index.html", page(f"{c['name']}: Mentor recipes", body, 2, current=c["id"]))
     everything = ""
@@ -353,7 +382,7 @@ Recipes are published here automatically after that check and are not read by a 
             everything += f'<div class="grid">{cards(used[c["id"]], "../")}</div>'
         for sc, _k in subs:
             everything += f'<h3><a href="../c/{sc["id"]}/index.html">{esc(sc["name"])}</a></h3><div class="grid">{cards(used[sc["id"]], "../")}</div>'
-    write("recipes/index.html", page("All recipes: Mentor", f"<h1>All recipes</h1>{everything or '<p>No recipes yet.</p>'}", 1))
+    write("recipes/index.html", page("All recipes: Mentor", f"<h1>All recipes</h1>{stats(recipes)}{TOOLBAR}{everything or '<p>No recipes yet.</p>'}", 1))
 
     # each recipe
     for r in recipes:

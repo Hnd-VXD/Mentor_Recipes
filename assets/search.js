@@ -102,3 +102,47 @@
   document.addEventListener("click", function (e) { if (!form.contains(e.target)) box.hidden = true; });
   form.addEventListener("submit", function (e) { e.preventDefault(); });
 })();
+
+// The bar above a list of recipes: filter by words, sort. Works on the cards already on the page.
+(function () {
+  "use strict";
+  var bar = document.getElementById("toolbar");
+  if (!bar) return;
+  bar.hidden = false; // without this script the bar would do nothing, so it stays hidden
+  var filter = document.getElementById("filter");
+  var sort = document.getElementById("sort");
+  var shown = document.getElementById("shown");
+
+  function cards() { return Array.prototype.slice.call(document.querySelectorAll("article.card")); }
+
+  function apply() {
+    var words = filter.value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    var visible = 0;
+    cards().forEach(function (c) {
+      var text = c.getAttribute("data-text") || "";
+      var ok = words.every(function (w) { return text.indexOf(w) >= 0; });
+      c.hidden = !ok;
+      if (ok) visible++;
+    });
+    shown.textContent = "Showing " + visible + (visible === 1 ? " recipe" : " recipes");
+  }
+
+  function order() {
+    var by = sort.value;
+    Array.prototype.forEach.call(document.querySelectorAll(".grid"), function (grid) {
+      var list = Array.prototype.slice.call(grid.children).filter(function (n) { return n.matches && n.matches("article.card"); });
+      list.sort(function (a, b) {
+        if (by === "title") return (a.getAttribute("data-title") || "").localeCompare(b.getAttribute("data-title") || "");
+        if (by === "time") return (b.getAttribute("data-time") || "").localeCompare(a.getAttribute("data-time") || "");
+        var d = Number(b.getAttribute("data-score")) - Number(a.getAttribute("data-score"));
+        return d || (b.getAttribute("data-time") || "").localeCompare(a.getAttribute("data-time") || "");
+      });
+      list.forEach(function (c) { grid.appendChild(c); });
+    });
+  }
+
+  filter.addEventListener("input", apply);
+  sort.addEventListener("change", order);
+  order();
+  apply();
+})();
