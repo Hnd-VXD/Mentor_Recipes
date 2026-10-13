@@ -261,7 +261,7 @@ def similarity(a_text, b_text):
     union = fa | fb
     if fa and fa == fb:
         return 1.0  # the same commands on the same files: the same recipe, however it is told
-    if len(union) >= 3:
+    if len(union) >= 3 or (fa & fb):  # enough to go by, or at least one thing in common
         return len(fa & fb) / len(union)
     wa, wb = title_words(a_text), title_words(b_text)
     title = len(wa & wb) / len(wa | wb) if wa | wb else 0.0
