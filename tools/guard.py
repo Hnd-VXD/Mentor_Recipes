@@ -5,7 +5,7 @@ Run by the workflows between `git add` and `git commit`. Whatever went wrong bef
 (a submission that talks the intake into something, a bug, a change to a script), the commit that
 reaches main can only be:
 
-  - a few new recipe files (recipes/<name>.md),
+  - new recipe files (recipes/<name>.md), not more than a day's limit,
   - a few recipes moved to quarantine/ (recipes/<name>.md -> quarantine/<name>.md), and its log,
   - categories.json and reports.json changed.
 
@@ -18,8 +18,8 @@ import re
 import subprocess
 import sys
 
-MAX_ADDED = 10
-MAX_MOVED = 5
+MAX_ADDED = 40   # the day's limit for publishing (tools/accept.py): a run may not do more than a day may
+MAX_MOVED = 10   # the day's limit for taking down (tools/takedown.py)
 NAME = r"[a-z0-9][a-z0-9-]{0,80}"
 ALWAYS = {"categories.json", "reports.json", "quarantine/LOG.txt"}
 

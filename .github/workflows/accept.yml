@@ -3,6 +3,10 @@ name: Accept and take down
 # A Mentor's submission or report arrives as a branch (netlify/functions/submit.js, report.js).
 # This looks at it with the rules and publishes it, or takes a recipe down, by itself: nobody
 # has to be there. The branch is deleted afterwards, whatever came of it.
+#
+# GitHub keeps only the newest waiting run of a group, so when several things arrive together
+# some runs are cancelled. That is why a run does not handle "its" branch only: it handles every
+# submission and report that is waiting, so that whichever run survives does all of it.
 on:
   push:
     branches: ['submit/**', 'report/**']
@@ -24,40 +28,56 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Bring in what was sent
+      - name: Bring in everything that is waiting
+        id: waiting
         run: |
-          git fetch origin "$GITHUB_REF_NAME"
+          git fetch origin '+refs/heads/submit/*:refs/remotes/origin/submit/*' '+refs/heads/report/*:refs/remotes/origin/report/*' 2>/dev/null || true
+          git for-each-ref --format='%(refname:short)' refs/remotes/origin/submit refs/remotes/origin/report > /tmp/branches
           mkdir -p /tmp/sent
-          for p in incoming reports; do
-            git archive "origin/$GITHUB_REF_NAME" "$p" 2>/dev/null | tar -x -C /tmp/sent || true
-          done
-          ls -R /tmp/sent || true
+          if [ ! -s /tmp/branches ]; then
+            echo "Nothing is waiting: an earlier run handled it."
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          while read -r b; do
+            for p in incoming reports; do
+              git archive "$b" "$p" 2>/dev/null | tar -x -C /tmp/sent || true
+            done
+          done < /tmp/branches
+          echo "waiting:"; cat /tmp/branches; ls -R /tmp/sent || true
 
       - name: Publish what passes
+        if: steps.waiting.outputs.any == 'true'
         run: |
           if [ -d /tmp/sent/incoming ]; then python3 tools/accept.py /tmp/sent/incoming | tee -a "$GITHUB_STEP_SUMMARY"; fi
 
       - name: Take down what deserves it
+        if: steps.waiting.outputs.any == 'true'
         run: |
           if [ -d /tmp/sent/reports ]; then python3 tools/takedown.py /tmp/sent/reports | tee -a "$GITHUB_STEP_SUMMARY"; fi
 
       - name: The site still builds
+        if: steps.waiting.outputs.any == 'true'
         run: python3 build_site.py
 
       - name: Keep the result
+        if: steps.waiting.outputs.any == 'true'
         run: |
           git config user.name "mentor-recipes-bot"
           git config user.email "mentor-recipes-bot@users.noreply.github.com"
           for p in recipes quarantine categories.json reports.json; do
             if [ -e "$p" ]; then git add -A -- "$p"; fi
           done
-          python3 tools/guard.py   # refuses a change that is more than a few recipes
+          python3 tools/guard.py   # refuses a change that is more than the day's limits
           if ! git diff --cached --quiet; then
-            git commit -m "Automatic: $GITHUB_REF_NAME"
+            git commit -m "Automatic: $(wc -l < /tmp/branches) waiting handled"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
 
-      - name: Remove the branch
-        if: always()
-        run: git push origin --delete "$GITHUB_REF_NAME" || true
+      # Only the ones that were looked at: what arrives after the list was made waits for the next run.
+      - name: Remove what was handled
+        if: always() && steps.waiting.outputs.any == 'true'
+        run: |
+          while read -r b; do git push origin --delete "${b#origin/}" || true; done < /tmp/branches
