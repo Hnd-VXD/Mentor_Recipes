@@ -82,6 +82,7 @@ def load_recipes(categories):
             print(f"warning: {name}: category '{category}' is not in categories.json; shown under Other", file=sys.stderr)
             category = "other"
         report, counts, _sha = inspect(path)
+        report = report.replace(path, "recipes/" + name)  # the page must not say where this was built
         found.append({
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""),

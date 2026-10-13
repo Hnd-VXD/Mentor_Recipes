@@ -31,6 +31,7 @@ for name in sorted(os.listdir(os.path.join(ROOT, "recipes"))):
     if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*\.md", name):
         problems.append("the file name is not lower case words with dashes")
     report, counts, _sha = inspect(path)
+    report = report.replace(path, "recipes/" + name)
     lines.append(f"## {name}: {counts['high']} serious, {counts['medium']} to look at")
     for p in problems:
         lines.append(f"- header: {p}")
