@@ -7,7 +7,7 @@ reaches main can only be:
 
   - new recipe files (recipes/<name>.md), not more than a day's limit,
   - a few recipes moved to quarantine/ (recipes/<name>.md -> quarantine/<name>.md), and its log,
-  - categories.json and reports.json changed.
+  - categories.json, reports.json and ratings.json changed.
 
 Nothing else: no file deleted, no published recipe edited, no workflow, script, function or setting
 touched. More than the limits in one run is refused whole, not cut down.
@@ -21,7 +21,7 @@ import sys
 MAX_ADDED = 40   # the day's limit for publishing (tools/accept.py): a run may not do more than a day may
 MAX_MOVED = 10   # the day's limit for taking down (tools/takedown.py)
 NAME = r"[a-z0-9][a-z0-9-]{0,80}"
-ALWAYS = {"categories.json", "reports.json", "quarantine/LOG.txt"}
+ALWAYS = {"categories.json", "reports.json", "ratings.json", "quarantine/LOG.txt"}
 
 
 def main():

@@ -228,6 +228,13 @@ def badge(counts):
     return '<span class="badge ok">nothing found</span>'
 
 
+def votes(r):
+    """What Mentors that used it said: up and down counts, or nothing while nobody has."""
+    if not (r.get("up") or r.get("down")):
+        return ""
+    return f'<span class="badge votes" title="Mentors that used it said so">\u25b2 {r["up"]} \u25bc {r["down"]}</span>'
+
+
 def recipe_card(r, categories, up):
     cat = categories[r["category"]]
     example = '<span class="badge example">example</span>' if r["status"] == "example" else ""
@@ -235,7 +242,7 @@ def recipe_card(r, categories, up):
     if r["setup"].get("gnome"):
         more += f' <span class="badge">GNOME {esc(r["setup"]["gnome"])}{"+" if r["setup"].get("or_later") else ""}</span>'
     return (f'<a class="card" href="{up}r/{r["id"]}/index.html"><strong>{esc(r["title"])}</strong>'
-            f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {more} {badge(r["counts"])}</span></a>')
+            f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {more} {votes(r)} {badge(r["counts"])}</span></a>')
 
 
 def parent_link(cat, categories):
@@ -403,6 +410,17 @@ def write(rel, text):
         f.write(text)
 
 
+def load_ratings():
+    """{recipe id: (up, down)} from ratings.json (tools/vote.py)."""
+    try:
+        with open(os.path.join(ROOT, "ratings.json"), encoding="utf-8") as f:
+            votes = json.load(f).get("votes", {})
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return {rid: (sum(1 for v in who.values() if v and v[0] == "up"), sum(1 for v in who.values() if v and v[0] == "down"))
+            for rid, who in votes.items() if isinstance(who, dict)}
+
+
 def main():
     if os.path.isdir(DIST):
         shutil.rmtree(DIST)
@@ -410,6 +428,9 @@ def main():
     categories = load_categories()
     categories.setdefault("other", {"id": "other", "name": "Other", "description": "Recipes that fit no other category."})
     recipes = load_recipes(categories)
+    ratings = load_ratings()
+    for r in recipes:
+        r["up"], r["down"] = ratings.get(r["id"], (0, 0))
     build_pages(recipes, categories)
     for asset in ("style.css", "mentor.png", "search.js"):
         shutil.copy(os.path.join(ROOT, "assets", asset), os.path.join(DIST, asset))
@@ -419,7 +440,7 @@ def main():
                        for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
                      "status": r["status"], "submitted": r["submitted"], "group": r["head"], "setup": r["setup"], "sha256": r["sha256"],
-                     "findings": r["counts"], "file": f"raw/{r['id']}.md"} for r in recipes],
+                     "findings": r["counts"], "up": r["up"], "down": r["down"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))
     print(f"built {len(recipes)} recipe(s) in {len(set(r['category'] for r in recipes))} categor(ies) -> dist/")

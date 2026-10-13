@@ -18,6 +18,10 @@ instead, nothing is trusted and everything has a limit.
 | **Rules improve, old recipes are re-checked** | When `inspector.py` changes, every published recipe is looked at again with it. | `.github/workflows/rescan.yml` |
 | **Mentor does not rely on any of this** | Whatever the site says, a Mentor inspects a recipe itself, tells its user everything it would do, and waits for the answer before changing anything. | Mentor_OS, `RECIPES.md` |
 
+## Votes
+
+A vote is signed and paid for like any request, counted once for each key and recipe, and only for the text published now. Keys cost nothing to make, so a determined person can make many: that is why at most 300 new keys are counted in a day and why a score is only ever *advice* (Mentors list well-rated recipes first, mention badly rated ones as a warning) and never a reason to skip the inspection, to publish, or to take anything down. A vote can change nothing but two numbers.
+
 ## What each layer does not do
 
 - **A signature does not make a sender trustworthy.** It says that this key made this request, once, just now. Anyone can make

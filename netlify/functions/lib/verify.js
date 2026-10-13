@@ -46,6 +46,10 @@ function reportFields(body) {
   return [String(body.id || ""), String(body.sha256 || "").toLowerCase(), body.kind === "rules" ? "rules" : "reading"];
 }
 
+function rateFields(body) {
+  return [String(body.id || ""), String(body.sha256 || "").toLowerCase(), body.vote === "up" ? "up" : "down"];
+}
+
 // -> { ok: true, keyId } or { ok: false, status, reason }
 function verify(kind, body, fields, now) {
   const fail = (status, reason) => ({ ok: false, status, reason });
@@ -74,4 +78,4 @@ function verify(kind, body, fields, now) {
   return { ok: true, keyId: sha256hex(raw).slice(0, 16), sigId: sha256hex(String(body.sig)).slice(0, 16) };
 }
 
-module.exports = { verify, submitFields, reportFields, signingString, sha256hex, POW_BITS };
+module.exports = { verify, submitFields, reportFields, rateFields, signingString, sha256hex, POW_BITS };

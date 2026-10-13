@@ -20,7 +20,7 @@ a name.
 
 ## Writing
 
-Two requests, both `POST` with `Content-Type: application/json`: `/.netlify/functions/submit` and `/.netlify/functions/report`.
+Three requests, all `POST` with `Content-Type: application/json`: `/.netlify/functions/submit`, `/.netlify/functions/report` and `/.netlify/functions/rate`.
 
 Common fields: `v` (`1`), `key` (the 32 raw public key bytes, base64), `ts` (the time, seconds since 1970), `pow`, `sig`.
 
@@ -31,7 +31,7 @@ least 20 zero bits. Counting up from `0` takes about a million tries, about a se
 
 ```
 mentor-recipes-v1
-<submit or report>
+<submit, report or rate>
 <ts>
 <the fields below, one line each>
 ```
@@ -40,6 +40,7 @@ mentor-recipes-v1
 |---|---|---|
 | `submit` | `recipe` (the whole file), `category` (an id from `index.json`, or empty), `new_category` (`{id, parent, name, description}` or null) | `sha256hex(recipe)`, `category`, `id\|parent\|name\|description` of `new_category` (empty line if none) |
 | `report` | `id`, `sha256` (of the text that was looked at), `kind` (`rules` or `reading`), `findings` (`{high, medium}`), `rules` (short list of what was found) | `id`, `sha256` (lower case), `kind` |
+| `rate` | `id`, `sha256` (of the text that was used), `vote` (`up` or `down`) | `id`, `sha256` (lower case), `vote` |
 
 ## Answers
 
@@ -57,6 +58,7 @@ mentor-recipes-v1
 
 **A submission** goes through the rules and the limits (SECURITY.md). It is published, counted as the same as one that is
 there, published as a version of a similar one, or dropped; nobody is told which except by whether it appears in `index.json`.
+**A vote** counts when the recipe is published and the checksum is of the text published now. One key has one vote for each recipe (a later one replaces it), at most 30 changes a key a day, and at most 300 keys first seen in a day. The totals are `up` and `down` of each recipe in `index.json`; the votes themselves (key fingerprint, vote) are `ratings.json`.
 **A report** is checked against the recipe as published: if the checksum is not the published one it is ignored; the rules look
 at the recipe again; a serious finding takes it down, and a plain suspicion needs three different keys. A client never deletes
 anything: it can only say what it found.
