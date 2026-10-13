@@ -337,9 +337,6 @@ def build_pages(recipes, categories):
     heads = [r for r in recipes if not r["head"]]
     listing = "".join(recipe_card(r, categories, "") for r in heads)
     home = f"""
-<p class="intro"><strong>Recipes for Mentor.</strong> What people built with it, written down so that your Mentor can build the
-same thing. Your Mentor reads each one with you first and tells you everything it would do.
-<a href="{RELEASES}">Get Mentor</a> (Windows 11).</p>
 {stats(recipes)}
 {TOOLBAR}
 <div class="grid">{listing or '<p>No recipes yet.</p>'}</div>
