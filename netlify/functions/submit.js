@@ -51,7 +51,7 @@ exports.handler = async (event) => {
     time: new Date().toISOString(),
   };
   try {
-    await branchWithFile(`submit/${who.sigId}`, `incoming/${id}.json`, JSON.stringify(submission), `Submission ${id}`);
+    await branchWithFile(`submit/${Math.floor(Date.now() / 1000)}-${who.sigId}`, `incoming/${id}.json`, JSON.stringify(submission), `Submission ${id}`);
   } catch (e) {
     return reply(e && e.exists ? 409 : 502, { error: e && e.exists ? "that request was already made" : "it could not be queued; try again later" });
   }

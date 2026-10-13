@@ -40,7 +40,7 @@ exports.handler = async (event) => {
   };
   const name = `${Date.now().toString(36)}-${who.sigId.slice(0, 8)}`;
   try {
-    await branchWithFile(`report/${who.sigId}`, `reports/${name}.json`, JSON.stringify(report), `Report ${name}`);
+    await branchWithFile(`report/${Math.floor(Date.now() / 1000)}-${who.sigId}`, `reports/${name}.json`, JSON.stringify(report), `Report ${name}`);
   } catch (e) {
     return reply(e && e.exists ? 409 : 502, { error: e && e.exists ? "that request was already made" : "it could not be queued; try again later" });
   }
