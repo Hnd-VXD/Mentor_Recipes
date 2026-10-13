@@ -34,7 +34,7 @@ if "--root" in sys.argv:
     ROOT = sys.argv[sys.argv.index("--root") + 1]
     args = [a for a in args if a != ROOT]
 sys.path.insert(0, ROOT)
-from inspector import inspect, scan_secrets, similarity  # noqa: E402
+from inspector import inspect, scan_secrets, similarity, parse_setup  # noqa: E402
 
 INCOMING = args[0] if args else os.path.join(ROOT, "incoming")
 MAX_BYTES = 120000
@@ -190,8 +190,12 @@ def decide(sub, categories, published, today, new_today):
     base, n = rid, 2
     while rid in taken:
         rid, n = f"{base}-{n}", n + 1
+    setup = parse_setup(body)
+    stamped = ("gnome: " + setup["gnome"] + "\n" if setup.get("gnome") else "") + \
+              ("or_later: yes\n" if setup.get("or_later") else "") + \
+              ("kernel: " + setup["kernel"] + "\n" if setup.get("kernel") else "")
     header = ("---\ncategory: " + category + "\nsummary: " + summary.replace("\n", " ") + "\nsubmitted: " + today +
-              "\nstatus: auto\nsource: " + source + ("\ngroup: " + group if group else "") + "\n---\n")
+              "\nstatus: auto\nsource: " + source + ("\ngroup: " + group if group else "") + "\n" + stamped + "---\n")
     return True, {"id": rid, "text": header + body, "category": category, "new_category": added, "counts": counts,
                   "group": group}
 

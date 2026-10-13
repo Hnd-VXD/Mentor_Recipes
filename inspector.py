@@ -266,3 +266,28 @@ def similarity(a_text, b_text):
     wa, wb = title_words(a_text), title_words(b_text)
     title = len(wa & wb) / len(wa | wb) if wa | wb else 0.0
     return 0.5 * title + 0.5 * difflib.SequenceMatcher(None, a_text, b_text).quick_ratio() * (1 if fa == fb else 0.5)
+
+
+# --- the setup a recipe was written for -------------------------------------------------------------
+# A recipe says what it was made on in one row of its first table:
+#     | Made on | Mentor, GNOME 51.0, kernel 6.12.5, 2026-10-13 |
+# `recipe_save` writes that row itself from the system it is saved on (not from what a model
+# says), and a Mentor compares it with its own system before anything is built.
+
+SETUP_ROW = re.compile(r"(?m)^\|\s*Made on\s*\|\s*(.+?)\s*\|\s*$")
+KERNEL_THINGS = re.compile(r"mkinitcpio|modprobe|insmod|/boot/|/etc/kernel|\bgrub\b|systemd-boot|linux-(lts|zen)")
+
+
+def parse_setup(text):
+    """{"gnome": "51", "or_later": bool, "kernel": "6.12", "line": "…"} from the "Made on" row; {} when there is none."""
+    m = SETUP_ROW.search(text)
+    if not m:
+        return {}
+    out = {"line": m.group(1)}
+    g = re.search(r"GNOME\s+(\d+)(?:\.\d+)*(\s+or\s+later)?", m.group(1), re.I)
+    if g:
+        out["gnome"], out["or_later"] = g.group(1), bool(g.group(2))
+    k = re.search(r"kernel\s+(\d+\.\d+)(?:\.\d+)*", m.group(1), re.I)
+    if k:
+        out["kernel"] = k.group(1)
+    return out

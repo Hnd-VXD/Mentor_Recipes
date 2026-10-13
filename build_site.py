@@ -86,6 +86,8 @@ def load_recipes(categories):
         found.append({
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
+            "setup": {k: v for k, v in (("gnome", meta.get("gnome", "")), ("kernel", meta.get("kernel", "")),
+                                        ("or_later", meta.get("or_later", ""))) if v},
             "sha256": hashlib.sha256(raw).hexdigest(), "body": body, "raw": raw,
             "report": report, "counts": counts,
         })
@@ -228,6 +230,8 @@ def recipe_card(r, categories, up):
     cat = categories[r["category"]]
     example = '<span class="badge example">example</span>' if r["status"] == "example" else ""
     more = f'<span class="badge">{len(r["versions"]) + 1} versions</span>' if r.get("versions") else ""
+    if r["setup"].get("gnome"):
+        more += f' <span class="badge">GNOME {esc(r["setup"]["gnome"])}{"+" if r["setup"].get("or_later") else ""}</span>'
     return (f'<a class="card" href="{up}r/{r["id"]}/index.html"><strong>{esc(r["title"])}</strong>'
             f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {more} {badge(r["counts"])}</span></a>')
 
@@ -352,6 +356,14 @@ Recipes are published here automatically after that check and are not read by a 
             notes += (f'<p class="note">Published automatically after an automatic check. A person has not read it. '
                       f'Mentor checks it again, itself, before it follows it. '
                       f'<a href="{HUB}/issues/new?title=Report+{esc(r["id"])}">Report a problem</a></p>')
+        if r["setup"]:
+            what = ", ".join(x for x in (
+                f'GNOME {esc(r["setup"]["gnome"])}{" or later" if r["setup"].get("or_later") else ""}' if r["setup"].get("gnome") else "",
+                f'kernel {esc(r["setup"]["kernel"])}' if r["setup"].get("kernel") else "") if x)
+            notes += (f'<p class="note">Written for {what}. Your Mentor compares that with your computer and tells you if it is '
+                      f'different; a recipe made for another setup may not work the same.</p>')
+        else:
+            notes += '<p class="note">This recipe does not say which GNOME and kernel it was written for.</p>'
         if r["head"]:
             notes += f'<p class="note">This is a version of <a href="../{r["head"]}/index.html">another recipe</a> that does nearly the same.</p>'
         serious = ""
@@ -404,7 +416,7 @@ def main():
         "categories": [{"id": c["id"], "parent": c.get("parent", ""), "name": c["name"], "description": c["description"]}
                        for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
-                     "status": r["status"], "submitted": r["submitted"], "group": r["head"], "sha256": r["sha256"],
+                     "status": r["status"], "submitted": r["submitted"], "group": r["head"], "setup": r["setup"], "sha256": r["sha256"],
                      "findings": r["counts"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))
