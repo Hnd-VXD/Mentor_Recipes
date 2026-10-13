@@ -361,10 +361,6 @@ Recipes are published here automatically after that check and are not read by a 
         notes = ""
         if r["status"] == "example":
             notes = '<p class="note">This is an example, written to show what a recipe looks like. It has not been tested on a real system.</p>'
-        if r["status"] == "auto":
-            notes += (f'<p class="note">Published automatically after an automatic check. A person has not read it. '
-                      f'Mentor checks it again, itself, before it follows it. '
-                      f'<a href="{HUB}/issues/new?title=Report+{esc(r["id"])}">Report a problem</a></p>')
         if r["setup"]:
             what = ", ".join(x for x in (
                 f'GNOME {esc(r["setup"]["gnome"])}{" or later" if r["setup"].get("or_later") else ""}' if r["setup"].get("gnome") else "",
@@ -382,19 +378,22 @@ Recipes are published here automatically after that check and are not read by a 
 <p class="crumbs"><a href="../../recipes/index.html">Recipes</a> / {parent_link(cat, categories)}<a href="../../c/{cat['id']}/index.html">{esc(cat['name'])}</a></p>
 <h1>{esc(r['title'])}</h1>
 <p class="lead">{esc(r['summary'])}</p>
-{notes}{serious}
+{serious}
 <div class="box">
-<p><strong>Use it:</strong> download the file, put it in <code>Documents/Mentor recipes</code> on your Mentor, and tell the assistant
-&ldquo;follow this recipe&rdquo;. It checks it, tells you everything it would do, and waits for your yes.</p>
-<p><a class="button" href="../../raw/{r['id']}.md" download>Download the recipe (.md)</a></p>
-<p class="small">SHA-256: <code>{r['sha256']}</code> {badge(r['counts'])}</p>
+<p><a class="button" href="../../raw/{r['id']}.md" download>Download the recipe</a></p>
+<p class="small">Download it on your Mentor. It checks the recipe, tells you what it would do, and asks before it changes anything. {badge(r['counts'])}</p>
 </div>
 {versions_box(r, recipes)}
+<details class="inside">
+<summary>Show what is inside</summary>
+{notes}
 <h2>The automatic check</h2>
 <p class="small">Made by fixed rules, not by a model. It is the same check Mentor does itself. It is not a promise that a recipe is safe.</p>
 <pre class="report">{esc(r['report'])}</pre>
 <h2>The recipe</h2>
-<div class="recipe">{markdown(r['body'])}</div>"""
+<div class="recipe">{markdown(r['body'])}</div>
+<p class="small">SHA-256: <code>{r['sha256']}</code> &middot; <a href="{HUB}/issues/new?title=Report+{esc(r['id'])}">Report a problem</a></p>
+</details>"""
         write(f"r/{r['id']}/index.html", page(f"{r['title']}: Mentor recipe", body, 2, r["summary"] or "A Mentor recipe.", current=r["category"]))
         os.makedirs(os.path.join(DIST, "raw"), exist_ok=True)
         with open(os.path.join(DIST, "raw", r["id"] + ".md"), "wb") as f:
