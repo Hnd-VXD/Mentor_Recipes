@@ -1,0 +1,21 @@
+# Netlify builds this site with one standard-library Python script; nothing to install.
+[build]
+  command = "python3 build_site.py"
+  publish = "dist"
+
+# The pages run no script at all, so nothing from a recipe can ever run in a visitor's browser.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/raw/*"
+  [headers.values]
+    Content-Type = "text/markdown; charset=utf-8"
+    Content-Disposition = "attachment"
+    Cache-Control = "public, max-age=300"

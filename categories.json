@@ -1,0 +1,10 @@
+{
+  "categories": [
+    {"id": "desktop", "name": "Desktop and look", "description": "How the desktop looks and behaves: themes, wallpapers, the clock, the taskbar, extensions."},
+    {"id": "apps", "name": "Programs and apps", "description": "Setting up a program the way you like it, or adding one that needs more than an install."},
+    {"id": "input", "name": "Keyboard, mouse and screen", "description": "Keys, shortcuts, mouse and touchpad behaviour, display and scaling."},
+    {"id": "system", "name": "System and maintenance", "description": "Updates, cleaning up, services, backups, performance."},
+    {"id": "network", "name": "Network and safety", "description": "The firewall, privacy, connections, accounts and passwords."},
+    {"id": "other", "name": "Other", "description": "Recipes that fit no other category yet."}
+  ]
+}
