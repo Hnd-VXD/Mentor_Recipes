@@ -1,6 +1,8 @@
 # Mentor recipes
 
 Recipes for [Mentor](https://github.com/Hnd-VXD/Mentor_OS): an Arch Linux with an assistant that you talk to.
+
+**The site: https://mentor-recipes.netlify.app**
 When someone builds something with Mentor that works, their assistant writes down how, in a Markdown file
 detailed enough that another Mentor can build the same thing. Those files are collected here and published as a
 website.
