@@ -26,7 +26,9 @@ jobs:
         run: |
           git config user.name "mentor-recipes-bot"
           git config user.email "mentor-recipes-bot@users.noreply.github.com"
-          git add -A recipes quarantine
+          for p in recipes quarantine; do
+            if [ -e "$p" ]; then git add -A -- "$p"; fi
+          done
           python3 tools/guard.py   # refuses a change that is more than a few recipes
           if ! git diff --cached --quiet; then
             git commit -m "Automatic: looked at everything again"
