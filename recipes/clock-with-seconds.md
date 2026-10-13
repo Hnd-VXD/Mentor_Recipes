@@ -1,5 +1,5 @@
 ---
-category: desktop
+category: panel
 status: example
 submitted: 2026-10-13
 summary: Show the seconds in the clock at the top of the screen.

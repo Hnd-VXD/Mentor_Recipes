@@ -3,11 +3,18 @@
   command = "python3 build_site.py"
   publish = "dist"
 
-# The pages run no script at all, so nothing from a recipe can ever run in a visitor's browser.
+# Two small functions: a Mentor posts a recipe, or reports one. They only pass it to GitHub,
+# where the rules decide (netlify/functions/submit.js, report.js, tools/accept.py, takedown.py).
+# The environment needs GITHUB_SUBMIT_TOKEN and SOURCE_SALT.
+[functions]
+  directory = "netlify/functions"
+
+# The only script is our own search.js. Nothing inline can run, and nothing from a recipe is ever
+# put on a page as markup, so nothing from a recipe can run in a visitor's browser.
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     X-Frame-Options = "DENY"

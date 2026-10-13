@@ -1,0 +1,61 @@
+name: Accept and take down
+
+# A Mentor's submission or report arrives as a branch (netlify/functions/submit.js, report.js).
+# This looks at it with the rules and publishes it, or takes a recipe down, by itself: nobody
+# has to be there. The branch is deleted afterwards, whatever came of it.
+on:
+  push:
+    branches: ['submit/**', 'report/**']
+
+permissions:
+  contents: write
+
+# One at a time, so that two never write to main together.
+concurrency:
+  group: hub
+  cancel-in-progress: false
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Bring in what was sent
+        run: |
+          git fetch origin "$GITHUB_REF_NAME"
+          mkdir -p /tmp/sent
+          for p in incoming reports; do
+            git archive "origin/$GITHUB_REF_NAME" "$p" 2>/dev/null | tar -x -C /tmp/sent || true
+          done
+          ls -R /tmp/sent || true
+
+      - name: Publish what passes
+        run: |
+          if [ -d /tmp/sent/incoming ]; then python3 tools/accept.py /tmp/sent/incoming | tee -a "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Take down what deserves it
+        run: |
+          if [ -d /tmp/sent/reports ]; then python3 tools/takedown.py /tmp/sent/reports | tee -a "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: The site still builds
+        run: python3 build_site.py
+
+      - name: Keep the result
+        run: |
+          git config user.name "mentor-recipes-bot"
+          git config user.email "mentor-recipes-bot@users.noreply.github.com"
+          git add -A recipes quarantine categories.json reports.json
+          python3 tools/guard.py   # refuses a change that is more than a few recipes
+          if ! git diff --cached --quiet; then
+            git commit -m "Automatic: $GITHUB_REF_NAME"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Remove the branch
+        if: always()
+        run: git push origin --delete "$GITHUB_REF_NAME" || true

@@ -22,7 +22,7 @@ import shutil
 import sys
 import time
 
-from inspector import inspect
+from inspector import inspect, features
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RECIPES = os.path.join(ROOT, "recipes")
@@ -85,11 +85,17 @@ def load_recipes(categories):
         report = report.replace(path, "recipes/" + name)  # the page must not say where this was built
         found.append({
             "id": name[:-3], "title": title, "summary": summary, "category": category,
-            "status": meta.get("status", ""), "submitted": meta.get("submitted", ""),
+            "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
             "sha256": hashlib.sha256(raw).hexdigest(), "body": body, "raw": raw,
             "report": report, "counts": counts,
         })
     found.sort(key=lambda r: (r["submitted"], r["title"]), reverse=True)
+    by_id = {r["id"]: r for r in found}
+    for r in found:  # a version belongs to the head of its group, which is not itself a version
+        head = by_id.get(r["group"])
+        r["head"] = head["id"] if head and not head["group"] else ""
+    for r in found:
+        r["versions"] = [v for v in found if v["head"] == r["id"]]
     return found
 
 
@@ -164,7 +170,24 @@ def markdown(text):
 
 # --- the pages ------------------------------------------------------------------------------
 
-def page(title, body, depth=0, description="Recipes for Mentor, an Arch Linux that you talk to."):
+SIDE = {"mains": [], "children": {}}  # filled by build_pages: the main categories, and what is in each
+
+
+def sidebar(depth, current):
+    """The left panel: the main categories. Their sub-categories are on the category's own page."""
+    up = "../" * depth
+    mine = None
+    for c, _total, subs in SIDE["mains"]:
+        if current == c["id"] or any(sc["id"] == current for sc, _k in subs):
+            mine = c["id"]
+    out = ['<div class="label">Browse</div>', f'<a class="side-all" href="{up}recipes/index.html">All recipes</a>']
+    for c, total, _subs in SIDE["mains"]:
+        here = ' aria-current="page"' if c["id"] == mine else ""
+        out.append(f'<a{here} href="{up}c/{c["id"]}/index.html">{esc(c["name"])} <span>{total}</span></a>')
+    return "".join(out)
+
+
+def page(title, body, depth=0, description="Recipes for Mentor, an Arch Linux that you talk to.", current=None):
     up = "../" * depth
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -175,15 +198,20 @@ def page(title, body, depth=0, description="Recipes for Mentor, an Arch Linux th
 <link rel="icon" href="{up}mentor.png">
 </head><body>
 <header class="top"><div class="wrap">
-<a class="brand" href="{up}index.html"><img src="{up}mentor.png" alt="" width="36" height="36"><span>Mentor</span></a>
-<nav><a href="{up}recipes/index.html">Recipes</a><a href="{SOURCE}">Source</a><a class="cta" href="{DOWNLOAD}">Download</a></nav>
+<a class="brand" href="{up}index.html"><img src="{up}mentor.png" alt="" width="34" height="34"><span><b>Mentor</b><i>recipes</i></span></a>
+<form class="search" role="search" hidden><input type="search" placeholder="Search recipes   ( / )" aria-label="Search recipes" autocomplete="off" spellcheck="false"><div class="results" hidden></div></form>
+<nav class="links"><a href="{SOURCE}">Source</a><a class="cta" href="{DOWNLOAD}">Get Mentor</a></nav>
 </div></header>
-<main class="wrap">
+<div class="wrap layout">
+<aside class="side" aria-label="Categories">{sidebar(depth, current)}</aside>
+<main>
 {body}
 </main>
+</div>
 <footer><div class="wrap">Mentor is an experiment, written with the help of AI and not audited by anyone independent.
 Recipes are instructions from other people: Mentor reads each one with you first and tells you everything it would do.
 <a href="{HUB}">The recipes repository</a> · <a href="{SOURCE}">Mentor on GitHub</a></div></footer>
+<script src="{up}search.js" data-root="{up}" defer></script>
 </body></html>
 """
 
@@ -199,60 +227,120 @@ def badge(counts):
 def recipe_card(r, categories, up):
     cat = categories[r["category"]]
     example = '<span class="badge example">example</span>' if r["status"] == "example" else ""
+    more = f'<span class="badge">{len(r["versions"]) + 1} versions</span>' if r.get("versions") else ""
     return (f'<a class="card" href="{up}r/{r["id"]}/index.html"><strong>{esc(r["title"])}</strong>'
-            f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {badge(r["counts"])}</span></a>')
+            f'<span>{esc(r["summary"])}</span><span class="meta">{esc(cat["name"])} {example} {more} {badge(r["counts"])}</span></a>')
+
+
+def parent_link(cat, categories):
+    parent = categories.get(cat.get("parent"))
+    return f'<a href="../../c/{parent["id"]}/index.html">{esc(parent["name"])}</a> / ' if parent else ""
+
+
+def versions_box(r, recipes):
+    """Other versions that do nearly the same, and how each differs: what it adds, what it leaves out."""
+    head = r if not r["head"] else next(x for x in recipes if x["id"] == r["head"])
+    family = [head] + head["versions"]
+    others = [x for x in family if x["id"] != r["id"]]
+    if not others:
+        return ""
+    mine = features(r["body"])
+    rows = ""
+    for x in others:
+        theirs = features(x["body"])
+        added = sorted(f[2:] for f in theirs - mine if f.startswith("c:"))[:3]
+        left = sorted(f[2:] for f in mine - theirs if f.startswith("c:"))[:3]
+        diff = ""
+        if added:
+            diff += "<br>adds: " + ", ".join(f"<code>{esc(c)}</code>" for c in added)
+        if left:
+            diff += "<br>leaves out: " + ", ".join(f"<code>{esc(c)}</code>" for c in left)
+        rows += (f'<li><a href="../{x["id"]}/index.html">{esc(x["title"])}</a>{" (the first)" if x["id"] == head["id"] else ""}'
+                 f' {badge(x["counts"])}{diff}</li>')
+    return f'<h2>Other versions of this</h2><ul class="versions">{rows}</ul>'
 
 
 def build_pages(recipes, categories):
     used = {}
     for r in recipes:
-        used.setdefault(r["category"], []).append(r)
+        if not r["head"]:
+            used.setdefault(r["category"], []).append(r)
+    children = {}
+    for c in categories.values():
+        if c.get("parent") in categories and c.get("parent") != c["id"]:
+            children.setdefault(c["parent"], []).append(c)
 
-    # home
-    cats = "".join(
-        f'<a class="card" href="c/{c["id"]}/index.html"><strong>{esc(c["name"])}</strong><span>{esc(c["description"])}</span>'
-        f'<span class="meta">{len(used.get(c["id"], []))} recipe(s)</span></a>'
+    def count(cid):
+        return len(used.get(cid, []))
+    mains = []
+    for c in categories.values():
+        if c.get("parent") in categories:
+            continue
+        subs = [(sc, count(sc["id"])) for sc in children.get(c["id"], []) if count(sc["id"])]
+        total = count(c["id"]) + sum(k for _sc, k in subs)
+        if total:
+            mains.append((c, total, subs))
+    SIDE["mains"], SIDE["children"] = mains, children
+
+    # home: the recipes are the page; Mentor itself is one line and a button in the header
+    chips = "".join(
+        f'<a class="chip" href="c/{c["id"]}/index.html">{esc(c["name"])} <span>{len(used.get(c["id"], []))}</span></a>'
         for c in categories.values() if used.get(c["id"]))
-    latest = "".join(recipe_card(r, categories, "") for r in recipes[:6])
+    browse = ""
+    for c, _total, subs in mains:
+        if subs:
+            browse += (f'<h2><a href="c/{c["id"]}/index.html">{esc(c["name"])}</a></h2><div class="subs">' +
+                       "".join(f'<a class="sub" href="c/{sc["id"]}/index.html"><strong>{esc(sc["name"])}</strong>'
+                               f'<span>{esc(sc["description"])}</span><em>{k} recipe(s)</em></a>' for sc, k in subs) + "</div>")
+    heads = [r for r in recipes if not r["head"]]
+    listing = "".join(recipe_card(r, categories, "") for r in heads)
     home = f"""
-<section class="hero">
-<h1>Talk to your computer. It builds what you ask for.</h1>
-<p>Mentor is Arch Linux with an assistant on the desktop that changes the system when you ask it to, in a window on Windows 11.
-Nothing to learn first: you say what you want.</p>
-<p><a class="button" href="{DOWNLOAD}">Download Mentor for Windows</a> <a class="button ghost" href="{RELEASES}">All downloads</a></p>
-<p class="small">Run <code>MentorSetup.exe</code>; it does the rest. Windows 11, 8 GB of memory or more. Windows may warn about an unsigned program the first time:
-<a href="{SOURCE}#install">the README explains how to check it</a>.</p>
-</section>
-<section>
-<h2>Recipes</h2>
-<p>When someone builds something with Mentor that works, their assistant writes down how, in enough detail that another Mentor can
-build the same thing. Those files are here. Download one, give it to your Mentor, and it does the rest: after it has read it with you
-and told you everything it would do.</p>
-<div class="grid">{cats or '<p>No recipes yet.</p>'}</div>
-<h3>Latest</h3>
-<div class="grid">{latest}</div>
-</section>
-<section>
-<h2>Is it safe to follow a recipe from a stranger?</h2>
+<p class="intro"><strong>Recipes for Mentor.</strong> What people built with it, written down so that your Mentor can build the
+same thing. Your Mentor reads each one with you first and tells you everything it would do.
+<a href="{RELEASES}">Get Mentor</a> (Windows 11).</p>
+<h2>Latest</h2>
+<div class="grid">{listing or '<p>No recipes yet.</p>'}</div>
+{browse}
+<details class="safe"><summary>Is it safe to follow a recipe from a stranger?</summary>
 <p>Not by default, and Mentor does not assume it is. Before anything is changed, Mentor checks the recipe with fixed rules
 (a program run unseen, a change to the safety rules, private keys read, files sent away, hidden text, text aimed at the assistant),
-gives you the whole report in plain words, and waits for your answer. The report on each recipe's page is the same one.</p>
-</section>"""
-    write("index.html", page("Mentor: talk to your computer", home, 0))
+gives you the whole report in plain words, and waits for your answer. The report on each recipe's page is the same one.
+Recipes are published here automatically after that check and are not read by a person; one that a Mentor finds harmful is taken down.</p>
+</details>"""
+    write("index.html", page("Mentor recipes", home, 0))
 
-    # one page per category, and the list of all
+    # one page per category: its own recipes, and the sub-categories' under it
+    def cards(rs, up):
+        return "".join(recipe_card(r, categories, up) for r in rs)
+
     for c in categories.values():
-        mine = used.get(c["id"], [])
-        if not mine:
+        own = used.get(c["id"], [])
+        sections = ""
+        for sc in children.get(c["id"], []):
+            if used.get(sc["id"]):
+                sections += (f'<h2><a href="../{sc["id"]}/index.html">{esc(sc["name"])}</a></h2>'
+                             f'<p class="small">{esc(sc["description"])}</p><div class="grid">{cards(used[sc["id"]], "../../")}</div>')
+        if not own and not sections:
             continue
-        body = f'<h1>{esc(c["name"])}</h1><p>{esc(c["description"])}</p><div class="grid">' + \
-               "".join(recipe_card(r, categories, "../../") for r in mine) + "</div>"
-        write(f"c/{c['id']}/index.html", page(f"{c['name']}: Mentor recipes", body, 2))
-    sections = "".join(
-        f'<h2><a href="../c/{c["id"]}/index.html">{esc(c["name"])}</a></h2><div class="grid">' +
-        "".join(recipe_card(r, categories, "../") for r in used[c["id"]]) + "</div>"
-        for c in categories.values() if used.get(c["id"]))
-    write("recipes/index.html", page("All recipes: Mentor", f"<h1>All recipes</h1>{sections or '<p>No recipes yet.</p>'}", 1))
+        parent = categories.get(c.get("parent"))
+        crumbs = ('<p class="crumbs"><a href="../../recipes/index.html">Recipes</a> / ' +
+                  (f'<a href="../{parent["id"]}/index.html">{esc(parent["name"])}</a> / ' if parent else "") +
+                  f'{esc(c["name"])}</p>')
+        subcards = "".join(
+            f'<a class="sub" href="../{sc["id"]}/index.html"><strong>{esc(sc["name"])}</strong><span>{esc(sc["description"])}</span>'
+            f'<em>{len(used[sc["id"]])} recipe(s)</em></a>' for sc in children.get(c["id"], []) if used.get(sc["id"]))
+        body = (f'{crumbs}<h1>{esc(c["name"])}</h1><p class="lead">{esc(c["description"])}</p>' +
+                (f'<div class="subs">{subcards}</div>' if subcards else "") +
+                (f'<h2>Recipes</h2><div class="grid">{cards(own, "../../")}</div>' if own else "") + sections)
+        write(f"c/{c['id']}/index.html", page(f"{c['name']}: Mentor recipes", body, 2, current=c["id"]))
+    everything = ""
+    for c, _total, subs in mains:
+        everything += f'<h2><a href="../c/{c["id"]}/index.html">{esc(c["name"])}</a></h2>'
+        if used.get(c["id"]):
+            everything += f'<div class="grid">{cards(used[c["id"]], "../")}</div>'
+        for sc, _k in subs:
+            everything += f'<h3><a href="../c/{sc["id"]}/index.html">{esc(sc["name"])}</a></h3><div class="grid">{cards(used[sc["id"]], "../")}</div>'
+    write("recipes/index.html", page("All recipes: Mentor", f"<h1>All recipes</h1>{everything or '<p>No recipes yet.</p>'}", 1))
 
     # each recipe
     for r in recipes:
@@ -260,11 +348,17 @@ gives you the whole report in plain words, and waits for your answer. The report
         notes = ""
         if r["status"] == "example":
             notes = '<p class="note">This is an example, written to show what a recipe looks like. It has not been tested on a real system.</p>'
+        if r["status"] == "auto":
+            notes += (f'<p class="note">Published automatically after an automatic check. A person has not read it. '
+                      f'Mentor checks it again, itself, before it follows it. '
+                      f'<a href="{HUB}/issues/new?title=Report+{esc(r["id"])}">Report a problem</a></p>')
+        if r["head"]:
+            notes += f'<p class="note">This is a version of <a href="../{r["head"]}/index.html">another recipe</a> that does nearly the same.</p>'
         serious = ""
         if r["counts"]["high"]:
             serious = '<p class="note bad">The automatic check found serious things in this recipe. Read the report before you do anything with it.</p>'
         body = f"""
-<p class="crumbs"><a href="../../recipes/index.html">Recipes</a> / <a href="../../c/{cat['id']}/index.html">{esc(cat['name'])}</a></p>
+<p class="crumbs"><a href="../../recipes/index.html">Recipes</a> / {parent_link(cat, categories)}<a href="../../c/{cat['id']}/index.html">{esc(cat['name'])}</a></p>
 <h1>{esc(r['title'])}</h1>
 <p class="lead">{esc(r['summary'])}</p>
 {notes}{serious}
@@ -274,12 +368,13 @@ gives you the whole report in plain words, and waits for your answer. The report
 <p><a class="button" href="../../raw/{r['id']}.md" download>Download the recipe (.md)</a></p>
 <p class="small">SHA-256: <code>{r['sha256']}</code> {badge(r['counts'])}</p>
 </div>
+{versions_box(r, recipes)}
 <h2>The automatic check</h2>
 <p class="small">Made by fixed rules, not by a model. It is the same check Mentor does itself. It is not a promise that a recipe is safe.</p>
 <pre class="report">{esc(r['report'])}</pre>
 <h2>The recipe</h2>
 <div class="recipe">{markdown(r['body'])}</div>"""
-        write(f"r/{r['id']}/index.html", page(f"{r['title']}: Mentor recipe", body, 2, r["summary"] or "A Mentor recipe."))
+        write(f"r/{r['id']}/index.html", page(f"{r['title']}: Mentor recipe", body, 2, r["summary"] or "A Mentor recipe.", current=r["category"]))
         os.makedirs(os.path.join(DIST, "raw"), exist_ok=True)
         with open(os.path.join(DIST, "raw", r["id"] + ".md"), "wb") as f:
             f.write(r["raw"])
@@ -302,13 +397,14 @@ def main():
     categories.setdefault("other", {"id": "other", "name": "Other", "description": "Recipes that fit no other category."})
     recipes = load_recipes(categories)
     build_pages(recipes, categories)
-    for asset in ("style.css", "mentor.png"):
+    for asset in ("style.css", "mentor.png", "search.js"):
         shutil.copy(os.path.join(ROOT, "assets", asset), os.path.join(DIST, asset))
     index = {
         "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "categories": [{"id": c["id"], "name": c["name"], "description": c["description"]} for c in categories.values()],
+        "categories": [{"id": c["id"], "parent": c.get("parent", ""), "name": c["name"], "description": c["description"]}
+                       for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
-                     "status": r["status"], "submitted": r["submitted"], "sha256": r["sha256"],
+                     "status": r["status"], "submitted": r["submitted"], "group": r["head"], "sha256": r["sha256"],
                      "findings": r["counts"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))

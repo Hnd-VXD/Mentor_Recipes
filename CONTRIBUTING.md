@@ -16,7 +16,8 @@
    `category` is one of the ids in `categories.json`. If none fits, use `other`; a new category can be proposed in the pull request.
 3. **Put the file in `recipes/`**, named for what it does, in lower case with dashes: `clock-with-seconds.md`.
 4. **Open a pull request.** It is checked automatically (`tools/check_recipes.py`): a recipe with serious findings fails, and one with
-   things to look at is explained in the check's summary. A person then reads it.
+   things to look at is explained in the check's summary. One that passes is published when it is merged; nobody else has to
+   read it, and Mentor inspects it again itself before anyone follows it.
 
 ## What a good recipe has
 

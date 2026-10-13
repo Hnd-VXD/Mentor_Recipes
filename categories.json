@@ -1,10 +1,82 @@
 {
   "categories": [
-    {"id": "desktop", "name": "Desktop and look", "description": "How the desktop looks and behaves: themes, wallpapers, the clock, the taskbar, extensions."},
-    {"id": "apps", "name": "Programs and apps", "description": "Setting up a program the way you like it, or adding one that needs more than an install."},
-    {"id": "input", "name": "Keyboard, mouse and screen", "description": "Keys, shortcuts, mouse and touchpad behaviour, display and scaling."},
-    {"id": "system", "name": "System and maintenance", "description": "Updates, cleaning up, services, backups, performance."},
-    {"id": "network", "name": "Network and safety", "description": "The firewall, privacy, connections, accounts and passwords."},
-    {"id": "other", "name": "Other", "description": "Recipes that fit no other category yet."}
+    {
+      "id": "desktop",
+      "name": "Desktop and look",
+      "description": "How the desktop looks and behaves."
+    },
+    {
+      "id": "appearance",
+      "parent": "desktop",
+      "name": "Themes and wallpapers",
+      "description": "Styles, dark mode, icons, wallpapers and fonts."
+    },
+    {
+      "id": "panel",
+      "parent": "desktop",
+      "name": "Panel, clock and toggles",
+      "description": "The top bar, the clock, the quick settings and their switches."
+    },
+    {
+      "id": "widgets",
+      "parent": "desktop",
+      "name": "Widgets and extensions",
+      "description": "Shell extensions, widgets and things added to the desktop."
+    },
+    {
+      "id": "apps",
+      "name": "Programs and apps",
+      "description": "Setting up a program the way you like it, or adding one that needs more than an install."
+    },
+    {
+      "id": "input",
+      "name": "Keyboard, mouse and screen",
+      "description": "Keys, shortcuts, mouse and touchpad behaviour, display and scaling."
+    },
+    {
+      "id": "keyboard",
+      "parent": "input",
+      "name": "Keyboard and shortcuts",
+      "description": "Layouts, shortcuts and key behaviour."
+    },
+    {
+      "id": "mouse",
+      "parent": "input",
+      "name": "Mouse and touchpad",
+      "description": "Pointer speed, scrolling, gestures and buttons."
+    },
+    {
+      "id": "display",
+      "parent": "input",
+      "name": "Screen and scaling",
+      "description": "Resolution, scaling, night light and multiple screens."
+    },
+    {
+      "id": "system",
+      "name": "System and maintenance",
+      "description": "Updates, cleaning up, services, backups, performance."
+    },
+    {
+      "id": "updates",
+      "parent": "system",
+      "name": "Updates and cleaning",
+      "description": "Keeping the system current and tidy."
+    },
+    {
+      "id": "services",
+      "parent": "system",
+      "name": "Services and startup",
+      "description": "What runs in the background and at login."
+    },
+    {
+      "id": "network",
+      "name": "Network and safety",
+      "description": "The firewall, privacy, connections, accounts and passwords."
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "description": "Recipes that fit no other category yet."
+    }
   ]
 }

@@ -194,3 +194,75 @@ def inspect(path):
                    "what it says it does.")
     out += ["", "## What the rules advise", verdict]
     return "\n".join(out), counts, sha
+
+
+# --- secrets: from mentor_recipes.py of Mentor_OS ------------------------------------------------
+
+# What must never be in a file that goes to other people.
+SECRETS = [
+    (re.compile(r"nvapi-[A-Za-z0-9_-]{16,}"), "an NVIDIA key"),
+    (re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"), "an API key"),
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}"), "a GitHub token"),
+    (re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"), "a Google key"),
+    (re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"), "a Slack token"),
+    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "a private key"),
+    (re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\b[\"']?\s*[=:]\s*[\"']?[^\s\"'<>$][^\s\"']{5,}"),
+     "a password or key written out"),
+    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "an email address"),
+]
+
+
+def scan_secrets(text):
+    """[(what, excerpt)] for each thing in the text that must not be shared."""
+    found = []
+    for pattern, what in SECRETS:
+        for match in pattern.finditer(text):
+            if what == "a password or key written out" and re.search(r"(?i)placeholder|example|your|<|\.\.\.|xxx|\$\{?[A-Z_]+", match.group(0)):
+                continue
+            if what == "an email address" and match.group(0).endswith(("@example.com", "@example.org")):
+                continue
+            found.append((what, match.group(0)[:60] + ("…" if len(match.group(0)) > 60 else "")))
+    return found[:12]
+
+
+# --- what makes two recipes alike -----------------------------------------------------------------
+# By what they do, not by how they are worded: the commands, the files and the programs. Two
+# recipes that run the same commands on the same files are the same recipe, however it is told.
+
+STOP = {"the", "a", "an", "for", "in", "of", "to", "and", "on", "with", "your", "my", "how", "make", "set", "up", "mentor"}
+
+
+def features(text):
+    """A set of strings: c:COMMAND, f:FILE, p:PROGRAM, from the code in the recipe."""
+    found = set()
+    for _n, line in _lines_in_code(text):
+        line = " ".join(line.strip().lstrip("$").split()).lower()
+        if line and not line.startswith("#"):
+            found.add("c:" + line)
+        for p in re.findall(r"(?:(?<=\s)|^)((?:~|/etc|/usr|/var|/opt|/boot|/home|/root)[\w./@+-]+)", line):
+            found.add("f:" + p)
+        for m in re.finditer(r"(?:pacman\s+-S[a-z]*|package_install|flatpak\s+install)\s+([^\n|;&]+)", line):
+            for word in m.group(1).split():
+                if not word.startswith("-"):
+                    found.add("p:" + word.strip("[]\"',"))
+    return found
+
+
+def title_words(text):
+    title = next((l[2:] for l in text.splitlines() if l.startswith("# ")), "")
+    return {w for w in re.findall(r"[a-z0-9]+", title.lower()) if w not in STOP}
+
+
+def similarity(a_text, b_text):
+    """0 to 1. The share of what they do that is the same; for recipes that do almost
+    nothing (one setting), the title and the text decide."""
+    import difflib
+    fa, fb = features(a_text), features(b_text)
+    union = fa | fb
+    if fa and fa == fb:
+        return 1.0  # the same commands on the same files: the same recipe, however it is told
+    if len(union) >= 3:
+        return len(fa & fb) / len(union)
+    wa, wb = title_words(a_text), title_words(b_text)
+    title = len(wa & wb) / len(wa | wb) if wa | wb else 0.0
+    return 0.5 * title + 0.5 * difflib.SequenceMatcher(None, a_text, b_text).quick_ratio() * (1 if fa == fb else 0.5)

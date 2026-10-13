@@ -1,5 +1,5 @@
 ---
-category: desktop
+category: appearance
 status: example
 submitted: 2026-10-13
 summary: Switch the whole desktop to the dark style, and back.
