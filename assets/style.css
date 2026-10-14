@@ -3,6 +3,7 @@
    capitals come from fonts most computers already have. */
 :root {
   color-scheme: dark;
+  --zoom: .9; /* the whole site at 90%, as with the browser's own zoom */
   --bg: #1d1e1c; --bg2: #252624; --card: #2a2b28; --line: #3b3d39;
   --green: #6ccf85; --green-dark: #1f4a39; --green-ink: #163829; --mint: #c9f2d4; --mint-dim: #9fc9ab;
   --text: #ecefe9; --dim: #a3a89f; --care: #ffcf5c; --bad: #ff7b6b; --good: #6ccf85;
@@ -14,7 +15,8 @@
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body {
-  margin: 0; min-height: 100vh; display: flex; flex-direction: column; color: var(--text); font: 16px/1.6 var(--font);
+  zoom: var(--zoom);
+  margin: 0; min-height: calc(100vh / var(--zoom)); display: flex; flex-direction: column; color: var(--text); font: 16px/1.6 var(--font);
   background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .wrap { width: min(1280px, 100% - 32px); margin: 0 auto; }
@@ -58,7 +60,8 @@ form.search .none { padding: 12px 14px; color: var(--dim); }
 .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 34px; align-items: start; flex: 1; padding: 0 0 54px; }
 .side {
   position: sticky; top: 58px; display: flex; flex-direction: column; padding: 26px 26px 22px; background: var(--green); color: var(--green-ink);
-  min-height: calc(100vh - 58px); max-height: calc(100vh - 58px); overflow: auto;
+  /* inside the zoom a length is drawn at 90%: the window's height is divided by it to fill it */
+  min-height: calc(100vh / var(--zoom) - 58px); max-height: calc(100vh / var(--zoom) - 58px); overflow: auto;
 }
 .side .lib { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; }
 .side .lib span { font-size: 1.9rem; line-height: .95; text-transform: uppercase; color: var(--green-ink); }
