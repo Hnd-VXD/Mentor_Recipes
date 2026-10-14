@@ -232,3 +232,7 @@ article.card .actions .btn.ghost { box-shadow: 0 2px 0 #0f2a1f; }
 /* the panel holds only the categories: "Get Mentor" is in the bar at the top. With many of them it scrolls by
    itself, with a thin scrollbar in the panel's own colours. */
 .side { scrollbar-width: thin; scrollbar-color: rgba(22, 56, 41, .55) transparent; overscroll-behavior: contain; }
+
+/* With many categories the panel scrolls inside itself; its title and "All recipes" stay at the top. */
+.side .lib { position: sticky; top: -18px; margin-top: -18px; padding-top: 18px; background: var(--green); z-index: 2; }
+.side a.side-all { position: sticky; top: 30px; background: var(--green); z-index: 2; }
