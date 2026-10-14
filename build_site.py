@@ -189,6 +189,7 @@ def sidebar(depth, current):
         for sc, k in subs:
             there = ' aria-current="page"' if sc["id"] == current else ""
             out.append(f'<a class="subl"{there} href="{up}c/{sc["id"]}/index.html"><i>\u21b3</i> {esc(sc["name"])} <span>{k}</span></a>')
+    out.append(f'<div class="join"><p>Build things by talking to your computer</p><a href="{DOWNLOAD}">Get Mentor</a></div>')
     return "".join(out)
 
 
