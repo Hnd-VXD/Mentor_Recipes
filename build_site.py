@@ -64,6 +64,12 @@ def load_categories():
     return {c["id"]: c for c in data["categories"]}
 
 
+def written_by(body):
+    """The model a recipe says wrote it (its "Written by" row, which Mentor fills in itself), or ""."""
+    found = re.search(r"(?mi)^\|\s*Written by\s*\|\s*(.+?)\s*\|\s*$", body)
+    return re.sub(r"[^A-Za-z0-9 .()/+-]", "", found.group(1)).strip()[:80] if found else ""
+
+
 def load_recipes(categories):
     found = []
     for name in sorted(os.listdir(RECIPES)):
@@ -87,6 +93,7 @@ def load_recipes(categories):
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
             "author": meta.get("source", ""), "updated": meta.get("updated", ""),
+            "model": written_by(body),
             # from the header the intake wrote; for one added by hand, from its own "Made on" row
             "setup": {k: v for k, v in (("gnome", meta.get("gnome") or parse_setup(body).get("gnome", "")),
                                         ("kernel", meta.get("kernel") or parse_setup(body).get("kernel", "")),
@@ -395,6 +402,9 @@ Recipes are published here automatically after that check and are not read by a 
                       f'different; a recipe made for another setup may not work the same.</p>')
         else:
             notes += '<p class="note">This recipe does not say which GNOME and kernel it was written for.</p>'
+        if r["model"]:
+            notes += (f'<p class="note">Written by {esc(r["model"])}, the model Mentor ran on when it wrote this recipe down. '
+                      f'Another model may follow it differently.</p>')
         if r["head"]:
             notes += f'<p class="note">This is a version of <a href="../{r["head"]}/index.html">another recipe</a> that does nearly the same.</p>'
         serious = ""
@@ -465,7 +475,7 @@ def main():
                        for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
                      "status": r["status"], "submitted": r["submitted"], "group": r["head"], "setup": r["setup"], "sha256": r["sha256"],
-                     "findings": r["counts"], "up": r["up"], "down": r["down"], "author": r["author"], "updated": r["updated"], "file": f"raw/{r['id']}.md"} for r in recipes],
+                     "findings": r["counts"], "up": r["up"], "down": r["down"], "author": r["author"], "updated": r["updated"], "model": r["model"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))
     print(f"built {len(recipes)} recipe(s) in {len(set(r['category'] for r in recipes))} categor(ies) -> dist/")
