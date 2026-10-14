@@ -103,20 +103,21 @@
   form.addEventListener("submit", function (e) { e.preventDefault(); });
 })();
 
-// The bar above a list of recipes: filter by words, sort. Works on the cards already on the page.
+// The bar above a list of recipes: sort, and how many are shown. The search box at the top also narrows
+// the cards on the page as you type. Works on the cards already on the page.
 (function () {
   "use strict";
   var bar = document.getElementById("toolbar");
   if (!bar) return;
   bar.hidden = false; // without this script the bar would do nothing, so it stays hidden
-  var filter = document.getElementById("filter");
+  var filter = document.querySelector("form.search input");
   var sort = document.getElementById("sort");
   var shown = document.getElementById("shown");
 
   function cards() { return Array.prototype.slice.call(document.querySelectorAll("article.card")); }
 
   function apply() {
-    var words = filter.value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    var words = (filter ? filter.value : "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     var visible = 0;
     cards().forEach(function (c) {
       var text = c.getAttribute("data-text") || "";
@@ -141,7 +142,7 @@
     });
   }
 
-  filter.addEventListener("input", apply);
+  if (filter) filter.addEventListener("input", apply);
   sort.addEventListener("change", order);
   order();
   apply();

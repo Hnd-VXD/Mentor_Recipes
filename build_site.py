@@ -268,8 +268,7 @@ def stats(recipes):
         f'<div><span>{esc(k)}</span><b>{v}</b><i>{esc(sub)}</i></div>' for k, v, sub in cells) + "</div>"
 
 
-TOOLBAR = ('<div class="toolbar" id="toolbar" hidden><input type="search" id="filter" placeholder="Filter these recipes" '
-           'aria-label="Filter these recipes" autocomplete="off" spellcheck="false">'
+TOOLBAR = ('<div class="toolbar" id="toolbar" hidden>'
            '<label>Sort <select id="sort" aria-label="Sort"><option value="score">Highest rated</option>'
            '<option value="time">Newest</option><option value="title">A to Z</option></select></label>'
            '<span id="shown"></span></div>')
