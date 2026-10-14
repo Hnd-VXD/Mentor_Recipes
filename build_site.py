@@ -243,11 +243,23 @@ def badge(counts):
     return '<span class="badge ok">nothing found</span>'
 
 
+# The thumbs Mentor itself draws (mentor-thumb-up-symbolic.svg in Mentor): one outline in the colour
+# of the text around it, rather than emoji, which every system draws differently.
+THUMB_PATH = ('<path d="M1 7h3v8H1z"/><path d="M5.25 7.2 8.6 1.3c.95-.25 2.3.55 2 2.15L10.1 6.5h3.4c1 0 1.75.9 '
+              '1.55 1.9l-1 5.2c-.15.8-.85 1.4-1.65 1.4h-7.15z"/>')
+
+
+def thumb(which):
+    turn = ' transform="rotate(180 8 8)"' if which == "down" else ""
+    return (f'<svg class="thumb" viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">'
+            f'<g{turn}>{THUMB_PATH}</g></svg>')
+
+
 def votes(r):
     """What Mentors that used it said: up and down counts, or nothing while nobody has."""
     if not (r.get("up") or r.get("down")):
         return ""
-    return f'<span class="badge votes" title="Mentors that used it said so">\u25b2 {r["up"]} \u25bc {r["down"]}</span>'
+    return f'<span class="badge votes" title="Mentors that used it said so">{thumb("up")} {r["up"]} {thumb("down")} {r["down"]}</span>'
 
 
 def recipe_card(r, categories, up):
@@ -257,7 +269,8 @@ def recipe_card(r, categories, up):
     more = f'<span class="badge">{len(r["versions"]) + 1} versions</span>' if r.get("versions") else ""
     if r["setup"].get("gnome"):
         more += f' <span class="badge">GNOME {esc(r["setup"]["gnome"])}{"+" if r["setup"].get("or_later") else ""}</span>'
-    rated = (f'<span class="vote"><b class="yes">\U0001F44D {r["up"]}</b><i></i><b class="no">\U0001F44E {r["down"]}</b></span>'
+    rated = (f'<span class="vote" title="Mentors that used it: it worked, it did not"><b class="yes">{thumb("up")} {r["up"]}</b>'
+             f'<i></i><b class="no">{thumb("down")} {r["down"]}</b></span>'
              if (r.get("up") or r.get("down")) else '<span class="vote none">not rated yet</span>')
     text = esc((r["title"] + " " + r["summary"] + " " + cat["name"]).lower())
     link = f'{up}r/{r["id"]}/index.html'
