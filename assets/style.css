@@ -215,3 +215,16 @@ header.top label.sort { display: flex; align-items: center; gap: 8px; color: var
 header.top label.sort select { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: #1f201e; color: var(--text); font: 600 .92rem var(--font); text-transform: none; letter-spacing: 0; }
 header.top label.sort select:focus { border-color: var(--green); outline: none; }
 @media (max-width: 900px) { header.top label.sort { order: 4; } }
+
+/* smaller cards: more of them in a row and on a screen */
+.grid { grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); gap: 12px; }
+article.card { padding: 11px 13px; gap: 6px; border-radius: 13px; }
+article.card .chip { font-size: .66rem; padding: 2px 7px; }
+article.card .vote { font-size: .74rem; padding: 1px 8px; gap: 6px; }
+article.card a.t { font-size: 1.4rem; line-height: 1; }
+article.card p { font-size: .84rem; line-height: 1.42; -webkit-line-clamp: 2; }
+article.card .meta { padding-top: 7px; gap: 4px; border-top-width: 1px; }
+article.card .meta .badge { font-size: .68rem; padding: 1px 7px; }
+article.card .actions { gap: 6px; }
+article.card .actions .btn { font-size: 1.02rem; padding: 6px 6px 4px; box-shadow: 0 2px 0 #2f7a47; }
+article.card .actions .btn.ghost { box-shadow: 0 2px 0 #0f2a1f; }
