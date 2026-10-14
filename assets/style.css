@@ -236,3 +236,7 @@ article.card .actions .btn.ghost { box-shadow: 0 2px 0 #0f2a1f; }
 /* With many categories the panel scrolls inside itself; its title and "All recipes" stay at the top. */
 .side .lib { position: sticky; top: -18px; margin-top: -18px; padding-top: 18px; background: var(--green); z-index: 2; }
 .side a.side-all { position: sticky; top: 30px; background: var(--green); z-index: 2; }
+
+/* The green panel goes down to the footer: the space at the end of the page is the content's, not the layout's. */
+.wrap.layout { padding-bottom: 0; }
+main { padding-bottom: 54px; }

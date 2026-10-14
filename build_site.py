@@ -64,6 +64,12 @@ def load_categories():
     return {c["id"]: c for c in data["categories"]}
 
 
+def based_on(body):
+    """The id of the recipe this one was made from (its "Based on" row), or ""."""
+    found = re.search(r"(?mi)^\|\s*Based on\s*\|\s*([a-z0-9][a-z0-9-]{0,80})\s*\|\s*$", body)
+    return found.group(1) if found else ""
+
+
 def written_by(body):
     """The model a recipe says wrote it (its "Written by" row, which Mentor fills in itself), or ""."""
     found = re.search(r"(?mi)^\|\s*Written by\s*\|\s*(.+?)\s*\|\s*$", body)
@@ -93,7 +99,7 @@ def load_recipes(categories):
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
             "author": meta.get("source", ""), "updated": meta.get("updated", ""),
-            "model": written_by(body),
+            "model": written_by(body), "based_on": based_on(body),
             # from the header the intake wrote; for one added by hand, from its own "Made on" row
             "setup": {k: v for k, v in (("gnome", meta.get("gnome") or parse_setup(body).get("gnome", "")),
                                         ("kernel", meta.get("kernel") or parse_setup(body).get("kernel", "")),
@@ -405,7 +411,10 @@ Recipes are published here automatically after that check and are not read by a 
         if r["model"]:
             notes += (f'<p class="note">Written by {esc(r["model"])}, the model Mentor ran on when it wrote this recipe down. '
                       f'Another model may follow it differently.</p>')
-        if r["head"]:
+        if r["based_on"] and any(x["id"] == r["based_on"] for x in recipes):
+            notes += (f'<p class="note">Made from <a href="../{r["based_on"]}/index.html">another recipe</a>, improved by '
+                      f'someone who used it.</p>')
+        elif r["head"]:
             notes += f'<p class="note">This is a version of <a href="../{r["head"]}/index.html">another recipe</a> that does nearly the same.</p>'
         serious = ""
         if r["counts"]["high"]:
@@ -475,7 +484,7 @@ def main():
                        for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
                      "status": r["status"], "submitted": r["submitted"], "group": r["head"], "setup": r["setup"], "sha256": r["sha256"],
-                     "findings": r["counts"], "up": r["up"], "down": r["down"], "author": r["author"], "updated": r["updated"], "model": r["model"], "file": f"raw/{r['id']}.md"} for r in recipes],
+                     "findings": r["counts"], "up": r["up"], "down": r["down"], "author": r["author"], "updated": r["updated"], "model": r["model"], "based_on": r["based_on"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))
     print(f"built {len(recipes)} recipe(s) in {len(set(r['category'] for r in recipes))} categor(ies) -> dist/")

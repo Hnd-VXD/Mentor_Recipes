@@ -140,6 +140,11 @@ def decide(sub, categories, published, today, new_today):
         return False, "the same recipe is already published as " + near + " (counted as another Mentor that made it)"
     if near and score >= VERSION:
         group = near
+    # A fork: the recipe says which one it was made from (its "Based on" row, which Mentor writes when the
+    # user improves a recipe of the site). Shown with that one, as a version of it, however much it changed.
+    based = re.search(r"(?mi)^\|\s*Based on\s*\|\s*([a-z0-9][a-z0-9-]{0,80})\s*\|\s*$", body)
+    if based and based.group(1) in dict(published):
+        group = dict(published)[based.group(1)].get("group") or based.group(1)
 
     # 5: the limits
     source = str(sub.get("source", ""))[:16]
