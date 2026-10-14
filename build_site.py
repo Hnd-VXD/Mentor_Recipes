@@ -86,6 +86,7 @@ def load_recipes(categories):
         found.append({
             "id": name[:-3], "title": title, "summary": summary, "category": category,
             "status": meta.get("status", ""), "submitted": meta.get("submitted", ""), "group": meta.get("group", ""),
+            "author": meta.get("source", ""), "updated": meta.get("updated", ""),
             # from the header the intake wrote; for one added by hand, from its own "Made on" row
             "setup": {k: v for k, v in (("gnome", meta.get("gnome") or parse_setup(body).get("gnome", "")),
                                         ("kernel", meta.get("kernel") or parse_setup(body).get("kernel", "")),
@@ -464,7 +465,7 @@ def main():
                        for c in categories.values()],
         "recipes": [{"id": r["id"], "title": r["title"], "summary": r["summary"], "category": r["category"],
                      "status": r["status"], "submitted": r["submitted"], "group": r["head"], "setup": r["setup"], "sha256": r["sha256"],
-                     "findings": r["counts"], "up": r["up"], "down": r["down"], "file": f"raw/{r['id']}.md"} for r in recipes],
+                     "findings": r["counts"], "up": r["up"], "down": r["down"], "author": r["author"], "updated": r["updated"], "file": f"raw/{r['id']}.md"} for r in recipes],
     }
     write("index.json", json.dumps(index, indent=1, ensure_ascii=False))
     print(f"built {len(recipes)} recipe(s) in {len(set(r['category'] for r in recipes))} categor(ies) -> dist/")

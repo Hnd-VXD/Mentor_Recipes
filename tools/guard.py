@@ -7,7 +7,8 @@ reaches main can only be:
 
   - new recipe files (recipes/<name>.md), not more than a day's limit,
   - a few recipes moved to quarantine/ (recipes/<name>.md -> quarantine/<name>.md), and its log,
-  - categories.json, reports.json and ratings.json changed.
+  - a few recipes given a new text by their author (recipes/<name>.md changed), or moved to withdrawn/,
+  - categories.json, reports.json, ratings.json and authors.json changed.
 
 Nothing else: no file deleted, no published recipe edited, no workflow, script, function or setting
 touched. More than the limits in one run is refused whole, not cut down.
@@ -21,22 +22,25 @@ import sys
 MAX_ADDED = 40   # the day's limit for publishing (tools/accept.py): a run may not do more than a day may
 MAX_MOVED = 10   # the day's limit for taking down (tools/takedown.py)
 NAME = r"[a-z0-9][a-z0-9-]{0,80}"
-ALWAYS = {"categories.json", "reports.json", "ratings.json", "quarantine/LOG.txt"}
+ALWAYS = {"categories.json", "reports.json", "ratings.json", "authors.json", "quarantine/LOG.txt", "withdrawn/LOG.txt"}
+MAX_UPDATED = 40  # the day's limit of authors' changes (tools/author.py)
 
 
 def main():
     out = subprocess.run(["git", "diff", "--cached", "--name-status", "-M50%"], capture_output=True, text=True, check=True).stdout
-    added = moved = 0
+    added = moved = updated = 0
     problems = []
     for line in out.splitlines():
         parts = line.split("\t")
         status, paths = parts[0], parts[1:]
         if status[0] == "A" and re.fullmatch(r"recipes/" + NAME + r"\.md", paths[0]):
             added += 1
-        elif status[0] == "A" and re.fullmatch(r"quarantine/" + NAME + r"\.md", paths[0]):
+        elif status[0] == "M" and re.fullmatch(r"recipes/" + NAME + r"\.md", paths[0]):
+            updated += 1  # an author's new text; tools/author.py checked whose it is
+        elif status[0] == "A" and re.fullmatch(r"(quarantine|withdrawn)/" + NAME + r"\.md", paths[0]):
             moved += 1  # a new file in quarantine: the move seen as add and delete is below
         elif status[0] == "R" and re.fullmatch(r"recipes/" + NAME + r"\.md", paths[0]) \
-                and re.fullmatch(r"quarantine/" + NAME + r"\.md", paths[1]):
+                and re.fullmatch(r"(quarantine|withdrawn)/" + NAME + r"\.md", paths[1]):
             moved += 1
         elif status[0] == "D" and re.fullmatch(r"recipes/" + NAME + r"\.md", paths[0]):
             pass  # the other half of a move; counted with the file that appeared in quarantine/
@@ -47,15 +51,15 @@ def main():
     if problems:
         print("REFUSED: this change touches more than it may:\n  " + "\n  ".join(problems[:20]))
         return 1
-    if added > MAX_ADDED or moved > MAX_MOVED:
-        print("REFUSED: too much for one run: " + str(added) + " added, " + str(moved) + " moved")
+    if added > MAX_ADDED or moved > MAX_MOVED + MAX_UPDATED or updated > MAX_UPDATED:
+        print("REFUSED: too much for one run: " + str(added) + " added, " + str(moved) + " moved, " + str(updated) + " updated")
         return 1
     # nothing may have been deleted that was not moved
     deleted = sum(1 for l in out.splitlines() if l.startswith("D"))
     if deleted > moved:
         print("REFUSED: " + str(deleted) + " deleted, " + str(moved) + " moved")
         return 1
-    print("fine: " + str(added) + " added, " + str(moved) + " moved")
+    print("fine: " + str(added) + " added, " + str(moved) + " moved, " + str(updated) + " updated")
     return 0
 
 

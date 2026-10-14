@@ -42,7 +42,7 @@ jobs:
           now=$(date +%s)
           while read -r b; do
             got=no
-            for p in incoming reports votes; do
+            for p in incoming reports votes changes; do
               if git archive "$b" "$p" 2>/dev/null | tar -x -C /tmp/sent 2>/dev/null; then got=yes; fi
             done
             if [ "$got" = yes ]; then
@@ -74,6 +74,11 @@ jobs:
         run: |
           if [ -d /tmp/sent/reports ]; then python3 tools/takedown.py /tmp/sent/reports | tee -a "$GITHUB_STEP_SUMMARY"; fi
 
+      - name: What authors asked for (a new text, or taken off)
+        if: steps.waiting.outputs.any == 'true'
+        run: |
+          if [ -d /tmp/sent/changes ]; then python3 tools/author.py /tmp/sent/changes | tee -a "$GITHUB_STEP_SUMMARY"; fi
+
       - name: Count the votes
         if: steps.waiting.outputs.any == 'true'
         run: |
@@ -88,7 +93,7 @@ jobs:
         run: |
           git config user.name "mentor-recipes-bot"
           git config user.email "mentor-recipes-bot@users.noreply.github.com"
-          for p in recipes quarantine categories.json reports.json ratings.json; do
+          for p in recipes quarantine withdrawn categories.json reports.json ratings.json authors.json; do
             if [ -e "$p" ]; then git add -A -- "$p"; fi
           done
           python3 tools/guard.py   # refuses a change that is more than the day's limits

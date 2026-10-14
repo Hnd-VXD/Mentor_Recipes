@@ -46,6 +46,14 @@ function reportFields(body) {
   return [String(body.id || ""), String(body.sha256 || "").toLowerCase(), body.kind === "rules" ? "rules" : "reading"];
 }
 
+function updateFields(body) {
+  return [String(body.id || ""), sha256hex(String(body.recipe || ""))];
+}
+
+function withdrawFields(body) {
+  return [String(body.id || "")];
+}
+
 function rateFields(body) {
   return [String(body.id || ""), String(body.sha256 || "").toLowerCase(), body.vote === "up" ? "up" : "down"];
 }
@@ -78,4 +86,4 @@ function verify(kind, body, fields, now) {
   return { ok: true, keyId: sha256hex(raw).slice(0, 16), sigId: sha256hex(String(body.sig)).slice(0, 16) };
 }
 
-module.exports = { verify, submitFields, reportFields, rateFields, signingString, sha256hex, POW_BITS };
+module.exports = { verify, submitFields, reportFields, rateFields, updateFields, withdrawFields, signingString, sha256hex, POW_BITS };
