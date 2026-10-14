@@ -103,7 +103,7 @@
   form.addEventListener("submit", function (e) { e.preventDefault(); });
 })();
 
-// The bar above a list of recipes: sort, and how many are shown. The search box at the top also narrows
+// The sort in the bar at the top, on pages that list recipes. The search box at the top also narrows
 // the cards on the page as you type. Works on the cards already on the page.
 (function () {
   "use strict";
@@ -125,7 +125,7 @@
       c.hidden = !ok;
       if (ok) visible++;
     });
-    shown.textContent = "Showing " + visible + (visible === 1 ? " recipe" : " recipes");
+    if (shown) shown.textContent = "Showing " + visible + (visible === 1 ? " recipe" : " recipes");
   }
 
   function order() {

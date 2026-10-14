@@ -205,7 +205,7 @@ def page(title, body, depth=0, description="Recipes for Mentor, an Arch Linux th
 </head><body>
 <header class="top"><div class="wrap">
 <a class="brand" href="{up}index.html"><img src="{up}mentor.png" alt="" width="34" height="34"><span><b>Mentor</b><i>recipes</i></span></a>
-<form class="search" role="search" hidden><input type="search" placeholder="Search recipes   ( / )" aria-label="Search recipes" autocomplete="off" spellcheck="false"><div class="results" hidden></div></form>
+<form class="search" role="search" hidden><input type="search" placeholder="Search recipes   ( / )" aria-label="Search recipes" autocomplete="off" spellcheck="false"><div class="results" hidden></div></form>{SORT if '<article class="card"' in body else ''}
 <nav class="links"><a href="{SOURCE}">Source</a><a class="cta" href="{DOWNLOAD}">Get Mentor</a></nav>
 </div></header>
 <div class="wrap layout">
@@ -268,10 +268,10 @@ def stats(recipes):
         f'<div><span>{esc(k)}</span><b>{v}</b><i>{esc(sub)}</i></div>' for k, v, sub in cells) + "</div>"
 
 
-TOOLBAR = ('<div class="toolbar" id="toolbar" hidden>'
-           '<label>Sort <select id="sort" aria-label="Sort"><option value="score">Highest rated</option>'
-           '<option value="time">Newest</option><option value="title">A to Z</option></select></label>'
-           '<span id="shown"></span></div>')
+TOOLBAR = ""  # the sort is in the bar at the top (SORT), on pages that list recipes
+SORT = ('<label class="sort" id="toolbar" hidden>Sort <select id="sort" aria-label="Sort the recipes">'
+        '<option value="score">Highest rated</option><option value="time">Newest</option>'
+        '<option value="title">A to Z</option></select></label>')
 
 
 def parent_link(cat, categories):

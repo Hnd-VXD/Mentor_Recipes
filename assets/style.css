@@ -209,3 +209,9 @@ main { padding-top: 18px; }
 .side .join p { font-size: 1.2rem; margin-bottom: 9px; }
 .side .join a { font-size: 1.3rem; padding: 10px 8px 8px; }
 .side .join a::before { font-size: 1.05rem; }
+
+/* the sort, beside the search at the top */
+header.top label.sort { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; }
+header.top label.sort select { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: #1f201e; color: var(--text); font: 600 .92rem var(--font); text-transform: none; letter-spacing: 0; }
+header.top label.sort select:focus { border-color: var(--green); outline: none; }
+@media (max-width: 900px) { header.top label.sort { order: 4; } }
