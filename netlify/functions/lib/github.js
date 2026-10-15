@@ -27,20 +27,35 @@ async function call(path, options = {}) {
 }
 
 // A new branch from main with one file on it. GitHub then runs .github/workflows/accept.yml.
+// Each step is tried up to three times: GitHub now and then refuses a call for a moment (on
+// 2026-10-15 a withdrawal was answered "could not be queued" and went through when sent again).
+// A 422 on a second try means the first did happen and only its answer was lost.
+async function retried(step) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await step();
+    } catch (e) {
+      if (e.exists && attempt > 1) return null;
+      if (e.exists || attempt >= 3) throw e;
+      await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+    }
+  }
+}
+
 async function branchWithFile(branch, file, text, message) {
-  const main = await call(`/repos/${OWNER}/${REPO}/git/ref/heads/main`);
-  await call(`/repos/${OWNER}/${REPO}/git/refs`, {
+  const main = await retried(() => call(`/repos/${OWNER}/${REPO}/git/ref/heads/main`));
+  await retried(() => call(`/repos/${OWNER}/${REPO}/git/refs`, {
     method: "POST",
     body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: main.object.sha }),
-  });
-  await call(`/repos/${OWNER}/${REPO}/contents/${file}`, {
+  }));
+  await retried(() => call(`/repos/${OWNER}/${REPO}/contents/${file}`, {
     method: "PUT",
     body: JSON.stringify({
       message,
       content: Buffer.from(text, "utf-8").toString("base64"),
       branch,
     }),
-  });
+  }));
 }
 
 module.exports = { branchWithFile };
