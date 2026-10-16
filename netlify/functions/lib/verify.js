@@ -50,6 +50,11 @@ function updateFields(body) {
   return [String(body.id || ""), sha256hex(String(body.recipe || ""))];
 }
 
+// A problem report (problem.js): its title, the whole text the user saw, and the version.
+function problemFields(body) {
+  return [sha256hex(String(body.title || "")), sha256hex(String(body.text || "")), String(body.version || "")];
+}
+
 function withdrawFields(body) {
   return [String(body.id || "")];
 }
@@ -86,4 +91,4 @@ function verify(kind, body, fields, now) {
   return { ok: true, keyId: sha256hex(raw).slice(0, 16), sigId: sha256hex(String(body.sig)).slice(0, 16) };
 }
 
-module.exports = { verify, submitFields, reportFields, rateFields, updateFields, withdrawFields, signingString, sha256hex, POW_BITS };
+module.exports = { verify, submitFields, reportFields, rateFields, updateFields, withdrawFields, problemFields, signingString, sha256hex, POW_BITS };

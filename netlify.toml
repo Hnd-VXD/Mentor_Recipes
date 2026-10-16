@@ -3,9 +3,10 @@
   command = "python3 build_site.py"
   publish = "dist"
 
-# Two small functions: a Mentor posts a recipe, or reports one. They only pass it to GitHub,
+# Small functions: a Mentor posts a recipe, or reports one, or reports a problem with Mentor itself. They only pass it to GitHub,
 # where the rules decide (netlify/functions/submit.js, report.js, tools/accept.py, takedown.py).
-# The environment needs GITHUB_SUBMIT_TOKEN and SOURCE_SALT.
+# The environment needs GITHUB_SUBMIT_TOKEN and SOURCE_SALT. Problem reports from Mentors (problem.js)
+# go to a private repository instead, with their own token: GITHUB_REPORTS_TOKEN (GITHUB_REPORTS_REPO, default Mentor_Reports).
 [functions]
   directory = "netlify/functions"
 

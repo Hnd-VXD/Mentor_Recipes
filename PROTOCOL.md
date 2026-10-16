@@ -65,3 +65,7 @@ there, published as a version of a similar one, or dropped; nobody is told which
 **A report** is checked against the recipe as published: if the checksum is not the published one it is ignored; the rules look
 at the recipe again; a serious finding takes it down, and a plain suspicion needs three different keys. A client never deletes
 anything: it can only say what it found.
+
+## Problem reports (`/.netlify/functions/problem`)
+
+Not about recipes: a Mentor whose user says something does not work as expected sends a report, after the user has read it and said yes. Body: `title` (up to 120 characters), `text` (the whole report, up to 24,000), `version` (digits and dots), signed like every request with kind `problem` over the fields `sha256(title)`, `sha256(text)`, `version`. The site files it as an issue labelled `pending` in a private repository (`GITHUB_REPORTS_REPO`, default `Mentor_Reports`) with its own token (`GITHUB_REPORTS_TOKEN`, issues of that repository only), adding the version, the sender's key id and the request id at the end, and answers `201 {"ok": true, "id": NUMBER}`. Nothing of it is published. An update that fixes reports names their numbers (`fixes` in its update.json).

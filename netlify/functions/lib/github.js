@@ -3,10 +3,10 @@
 // this one repository, with permission to write contents. It is never in the code.
 const OWNER = "Hnd-VXD";
 const REPO = "Mentor_Recipes";
-const API = "https://api.github.com";
+const API = process.env.API_BASE || "https://api.github.com";
 
-async function call(path, options = {}) {
-  const token = process.env.GITHUB_SUBMIT_TOKEN;
+async function call(path, options = {}, tokenName = "GITHUB_SUBMIT_TOKEN") {
+  const token = process.env[tokenName];
   if (!token) throw new Error("the site has no token for GitHub");
   const response = await fetch(API + path, {
     ...options,
@@ -58,4 +58,15 @@ async function branchWithFile(branch, file, text, message) {
   }));
 }
 
-module.exports = { branchWithFile };
+// An issue in the private repository of problem reports (problem.js). Its own token
+// (GITHUB_REPORTS_TOKEN): a fine-grained token for that one repository, with permission to write issues.
+// API_BASE lets a test send it somewhere else.
+async function createIssue(title, body, labels) {
+  const repo = process.env.GITHUB_REPORTS_REPO || "Mentor_Reports";
+  return retried(() => call(`/repos/${OWNER}/${repo}/issues`, {
+    method: "POST",
+    body: JSON.stringify({ title, body, labels }),
+  }, "GITHUB_REPORTS_TOKEN"));
+}
+
+module.exports = { branchWithFile, createIssue };
